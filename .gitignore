@@ -1,8 +1,5 @@
 # Credentials — never commit these.
-#
-# The previous version of this project kept the MinIO root password in .env
-# files that were committed. Nothing matching these patterns belongs in the
-# repository; supply credentials via a Kubernetes Secret instead (see README).
+# supply credentials via a Kubernetes Secret instead (see README).
 .env
 .env.*
 *.env
