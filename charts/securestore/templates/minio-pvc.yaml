@@ -1,0 +1,22 @@
+{{- if .Values.minio.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.minio.persistence.name }}
+  labels:
+    {{- include "securestore.labels" . | nindent 4 }}
+  annotations:
+    # Keep the stored objects when the release is uninstalled. Deleting the
+    # object store's data should be a deliberate act, not a side effect of
+    # `helm uninstall`. Remove the PVC by hand if you really want the data gone.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.minio.persistence.accessMode }}
+  {{- if .Values.minio.persistence.storageClass }}
+  storageClassName: {{ .Values.minio.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.minio.persistence.size | quote }}
+{{- end }}

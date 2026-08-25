@@ -1,0 +1,7 @@
+# Defence in depth: even if a developer creates a local .env for testing, it
+# must never enter the build context and end up in an image layer.
+.env
+.env.*
+*.env
+__pycache__/
+*.py[cod]

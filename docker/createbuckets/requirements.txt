@@ -1,0 +1,6 @@
+# Pinned for reproducible image builds.
+#
+# Bumped from 7.1.15: that release predates urllib3 2.x and is from mid-2023.
+# Only list_buckets/bucket_exists/make_bucket are used, which are stable
+# across the 7.x line.
+minio==7.2.20

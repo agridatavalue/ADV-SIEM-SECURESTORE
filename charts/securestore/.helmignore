@@ -1,0 +1,16 @@
+.DS_Store
+.git/
+.gitignore
+.idea/
+.vscode/
+*.tmproj
+*.swp
+*.bak
+*.orig
+# Never package local overrides — they are the most likely place for a
+# credential to be sitting.
+values.local.yaml
+values-local.yaml
+secrets*.yaml
+.env
+*.env

@@ -1,0 +1,96 @@
+# Default values for the ADV SECURESTORE chart.
+#
+# This file intentionally contains NO credentials.
+#
+# The MinIO root user and password are read from a Kubernetes Secret that you
+# create before installing, referenced by minio.auth.existingSecret. There is
+# no default and no chart-generated password: if that value is unset, the chart
+# refuses to render rather than deploying something with a guessable password.
+# See README.md.
+
+# Overrides the name used for the MinIO objects. Leave empty to use the default
+# ("minio", see minio.name below).
+nameOverride: ""
+
+minio:
+  # Name of the MinIO Deployment and Service, and the value of the `app` label
+  # used as the Service selector.
+  #
+  # Kept as "minio" so that in-cluster clients continue to reach the store at
+  # minio:9000, as they did with previous versions of this chart. Change it only
+  # if you need more than one SECURESTORE instance in a single namespace — and
+  # update any dependent ADV components if you do.
+  name: minio
+
+  image:
+    repository: quay.io/minio/minio
+    # Pinned deliberately: a floating "latest" tag makes deployments
+    # irreproducible and silently changes MinIO under a running release.
+    # This is the same tag upstream MinIO pins in its own chart.
+    tag: RELEASE.2024-12-18T13-15-44Z
+    pullPolicy: IfNotPresent
+
+  auth:
+    # REQUIRED. Name of an existing Secret in the release namespace holding the
+    # MinIO root credentials. Create it with:
+    #
+    #   kubectl create secret generic securestore-minio-credentials \
+    #     --from-literal=root-user='<user>' \
+    #     --from-literal=root-password='<password>'
+    #
+    existingSecret: ""
+    # Keys to read within that Secret. Adjust if you already have a Secret
+    # using different key names.
+    userKey: root-user
+    passwordKey: root-password
+
+  service:
+    type: ClusterIP
+    apiPort: 9000
+    consolePort: 9001
+    # Only used when type is NodePort; leave empty to let Kubernetes choose.
+    apiNodePort: ""
+    consoleNodePort: ""
+
+  persistence:
+    # Set to false to use an emptyDir instead — data is lost when the pod
+    # restarts, so this is for throwaway test clusters only.
+    enabled: true
+    name: miniostorage
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    # Leave empty to use the cluster's default StorageClass.
+    storageClass: ""
+
+  # Set to true when MinIO is served over HTTPS. Controls the `secure` flag the
+  # bucket-provisioning client uses; it does not itself enable TLS on MinIO.
+  tls: false
+
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+createBuckets:
+  # Runs the bucket-provisioning Job as a post-install/post-upgrade hook.
+  enabled: true
+  image:
+    # REQUIRED when enabled: the image built from docker/createbuckets, pushed
+    # somewhere your cluster can pull from. See README.md.
+    repository: ""
+    tag: ""
+    pullPolicy: IfNotPresent
+  # Buckets provisioned on install. Existing buckets are left untouched.
+  buckets:
+    - models
+    - explainators
+    - sensordata
+    - dronedata
+    - eodata
+  # The Job may start before MinIO is accepting connections, so the script
+  # retries. Bad credentials fail immediately rather than consuming retries.
+  connectRetries: 30
+  connectRetryDelaySeconds: 5
+  # Job-level retries, as a backstop if the pod itself fails to start.
+  backoffLimit: 6
+  resources: {}

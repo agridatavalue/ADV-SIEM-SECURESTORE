@@ -1,0 +1,72 @@
+{{- if .Values.createBuckets.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "securestore.minioName" . }}-createbuckets
+  labels:
+    {{- include "securestore.labels" . | nindent 4 }}
+  annotations:
+    # Runs after MinIO's Deployment/Service exist. MinIO will usually not be
+    # accepting connections yet at that point, so the script retries — see
+    # createBuckets.connectRetries. Helm waits for this Job, so a failure here
+    # fails the release rather than leaving a silently empty object store.
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    # hook-succeeded cleans up on success; a failed Job is deliberately left
+    # behind so its logs can be inspected with `kubectl logs job/...`.
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.createBuckets.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "securestore.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: createbuckets
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: createbuckets
+          image: {{ include "securestore.createBucketsImage" . | quote }}
+          imagePullPolicy: {{ .Values.createBuckets.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: MINIO_ENDPOINT
+              value: {{ include "securestore.minioEndpoint" . | quote }}
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "securestore.authSecretName" . }}
+                  key: {{ .Values.minio.auth.userKey }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "securestore.authSecretName" . }}
+                  key: {{ .Values.minio.auth.passwordKey }}
+            - name: MINIO_SECURE
+              value: {{ .Values.minio.tls | quote }}
+            - name: BUCKETS
+              value: {{ join "," .Values.createBuckets.buckets | quote }}
+            - name: CONNECT_RETRIES
+              value: {{ .Values.createBuckets.connectRetries | quote }}
+            - name: CONNECT_RETRY_DELAY_SECONDS
+              value: {{ .Values.createBuckets.connectRetryDelaySeconds | quote }}
+          {{- with .Values.createBuckets.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.minio.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.minio.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

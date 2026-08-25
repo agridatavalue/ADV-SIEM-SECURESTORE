@@ -1,0 +1,14 @@
+apiVersion: v2
+name: securestore
+description: Helm chart for ADV SECURESTORE — a MinIO object store with the AgriDataValue buckets provisioned on install
+type: application
+version: 1.1.0
+appVersion: "1.1"
+keywords:
+  - agridatavalue
+  - securestore
+  - minio
+  - object-storage
+home: https://github.com/agridatavalue/ADV-SIEM-SECURESTORE
+sources:
+  - https://github.com/agridatavalue/ADV-SIEM-SECURESTORE

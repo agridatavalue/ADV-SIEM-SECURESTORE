@@ -1,0 +1,36 @@
+ADV SECURESTORE ({{ .Chart.Name }}-{{ .Chart.Version }}) is installed as release "{{ .Release.Name }}".
+
+MinIO is reachable inside the cluster at:
+
+  API      {{ include "securestore.minioEndpoint" . }}
+  Console  {{ include "securestore.minioName" . }}:{{ .Values.minio.service.consolePort }}
+
+Credentials come from the Secret "{{ .Values.minio.auth.existingSecret }}"
+(keys: {{ .Values.minio.auth.userKey }} / {{ .Values.minio.auth.passwordKey }}).
+They are not stored in this chart or in the release values.
+
+{{ if .Values.createBuckets.enabled -}}
+The bucket-provisioning Job ran as a post-install hook and should have created:
+{{ range .Values.createBuckets.buckets }}
+  - {{ . }}
+{{- end }}
+
+Verify:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "securestore.minioName" . }} {{ .Values.minio.service.consolePort }}:{{ .Values.minio.service.consolePort }}
+
+then open http://localhost:{{ .Values.minio.service.consolePort }} and sign in.
+
+If the release failed at the hook, read the Job's logs:
+
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "securestore.minioName" . }}-createbuckets
+
+{{- else -}}
+Bucket provisioning is disabled (createBuckets.enabled=false), so no buckets
+have been created. Create them yourself, or re-run with it enabled.
+{{- end }}
+
+{{ if not .Values.minio.persistence.enabled -}}
+WARNING: persistence is disabled — objects live in an emptyDir and are lost
+when the pod restarts. Do not use this outside a test cluster.
+{{- end }}
